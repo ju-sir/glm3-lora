@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息抽取 Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(145deg, #e5e7eb 0%, #d1d5db 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px;
+            transition: background 0.3s ease;
+        }
+
+        body.dark {
+            background: linear-gradient(145deg, #1f2937 0%, #111827 100%);
+        }
+
+        /* Container with glassmorphism */
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 1100px;
+            transition: all 0.3s ease;
+        }
+
+        body.dark .container {
+            background: rgba(31, 41, 55, 0.9);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Typography */
+        h2 {
+            color: #111827;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #2563eb, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        body.dark h2 {
+            color: #f3f4f6;
+        }
+
+        h3 {
+            color: #1f2937;
+            font-size: 22px;
+            font-weight: 600;
+            margin: 32px 0 16px;
+        }
+
+        body.dark h3 {
+            color: #d1d5db;
+        }
+
+        h4 {
+            color: #374151;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        body.dark h4 {
+            color: #9ca3af;
+        }
+
+        /* Form elements */
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(243, 244, 246, 0.8);
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark textarea, body.dark input[type="text"] {
+            background: rgba(55, 65, 81, 0.8);
+            color: #f3f4f6;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        body.dark textarea:focus, body.dark input[type="text"]:focus {
+            background: rgba(75, 85, 99, 0.95);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 140px;
+        }
+
+        input[type="file"] {
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(243, 244, 246, 0.8);
+            width: 100%;
+            cursor: pointer;
+        }
+
+        body.dark input[type="file"] {
+            background: rgba(55, 65, 81, 0.8);
+            color: #f3f4f6;
+        }
+
+        /* Buttons */
+        button {
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            color: white;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+        }
+
+        .button-container {
+            display: flex;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .button-container button:nth-child(2) {
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+        }
+
+        .button-container button:nth-child(2):hover {
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        button.cancel {
+            background: linear-gradient(90deg, #6b7280, #9ca3af);
+            box-shadow: 0 4px 14px rgba(107, 114, 128, 0.3);
+        }
+
+        button.cancel:hover {
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+        }
+
+        /* Output and results */
+        pre {
+            background: rgba(243, 244, 246, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 350px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            color: #1f2937;
+        }
+
+        body.dark pre {
+            background: rgba(55, 65, 81, 0.8);
+            color: #d1d5db;
+        }
+
+        /* Error message */
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 12px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        /* Batch processing */
+        .batch-input, .confirm-container, .batch-confirm-container, .query-section {
+            margin-top: 40px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark .batch-input, body.dark .confirm-container, 
+        body.dark .batch-confirm-container, body.dark .query-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .batch-progress {
+            color: #4b5563;
+            font-size: 14px;
+            margin-top: 16px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+
+        body.dark .batch-progress {
+            color: #9ca3af;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .batch-complete {
+            color: #22c55e;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 16px;
+            text-align: center;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        /* Query section */
+        .query-inputs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .query-inputs input {
+            flex: 1;
+        }
+
+        .query-inputs button {
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+        }
+
+        .query-inputs button:hover {
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Animations */
+        .confirm-container, .batch-confirm-container {
+            display: none;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar */
+        pre::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        pre::-webkit-scrollbar-track {
+            background: transparent;
+            border-radius: 5px;
+        }
+
+        pre::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        body.dark pre::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        pre::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark pre::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <div class="container">
+        <h2>智能信息抽取</h2>
+        <textarea id="userInput" placeholder="请输入需要抽取的内容"></textarea>
+        <div class="button-container">
+            <button onclick="sendPostRequest()">原始模型提取</button>
+            <button onclick="sendAnotherPostRequest()">优化模型提取</button>
+        </div>
+        <h3>提取结果</h3>
+        <pre id="responseOutput"></pre>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="batch-input">
+            <h3>批量处理</h3>
+            <label for="batchFile">上传文本文件 (.txt):</label>
+            <input type="file" id="batchFile" accept=".txt">
+            <button onclick="sendBatchRequest()">处理批量数据</button>
+            <div class="batch-progress" id="batchProgress"></div>
+            <div class="batch-complete" id="batchComplete" style="display: none;">批量处理完成！</div>
+        </div>
+
+        <div class="confirm-container" id="confirmContainer">
+            <h3>结果确认与编辑</h3>
+            <textarea id="confirmInput" placeholder="请确认或修改提取结果"></textarea>
+            <div class="button-container">
+                <button onclick="saveToMongoDB()">保存结果</button>
+                <button onclick="cancelConfirm()" class="cancel">取消</button>
+            </div>
+        </div>
+
+        <div class="batch-confirm-container" id="batchConfirmContainer">
+            <h3>批量结果确认</h3>
+            <textarea id="batchConfirmInput" placeholder="请确认或修改批量结果"></textarea>
+            <div class="button-container">
+                <button onclick="saveBatchToMongoDB()">保存批量结果</button>
+                <button onclick="cancelBatchConfirm()" class="cancel">取消</button>
+            </div>
+        </div>
+
+        <div class="query-section">
+            <h3>数据查询</h3>
+            <div class="query-inputs">
+                <input type="text" id="labelQuery" placeholder="按标签查询">
+                <input type="text" id="textQuery" placeholder="按内容查询">
+                <button onclick="searchInMongoDB()">执行查询</button>
+            </div>
+            <div class="query-results">
+                <h4>查询结果</h4>
+                <pre id="queryOutput"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            const toggleButton = document.querySelector('.theme-toggle');
+            toggleButton.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        }
+
+        // Original JavaScript (unchanged)
+        let batchResults = "";
+        let totalLines = 0;
+        let processedLines = 0;
+        let originalBatchResults = "";
+        let batchFileContents = "";
+        
+        function sendPostRequest() {
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput) {
+                showError("请输入内容！");
+                return;
+            }
+            const data = {
+                message: userInput
+            };
+            clearError();
+            fetch('http://localhost:8081/event-demo1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('后端返回:', data);
+                const responseOutput = document.getElementById("responseOutput");
+                responseOutput.textContent = JSON.stringify(data, null, 2);
+                showConfirmContainer(JSON.stringify(data, null, 2));
+            })
+            .catch((error) => {
+                console.error('请求失败:', error);
+                showError('请求失败，请重试！');
+            });
+        }
+        
+        function sendAnotherPostRequest() {
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput) {
+                showError("请输入内容！");
+                return;
+            }
+            const data = {
+                message: userInput
+            };
+            clearError();
+            fetch('http://localhost:8081/event-demo2', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('另一个后端返回:', data);
+                const responseOutput = document.getElementById("responseOutput");
+                responseOutput.textContent = JSON.stringify(data, null, 2);
+                showConfirmContainer(JSON.stringify(data, null, 2));
+            })
+            .catch((error) => {
+                console.error('请求失败:', error);
+                showError('请求失败，请重试！');
+            });
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById("errorMessage");
+            errorMessage.textContent = message;
+        }
+        
+        function clearError() {
+            const errorMessage = document.getElementById("errorMessage");
+            errorMessage.textContent = '';
+        }
+        
+        function showConfirmContainer(response) {
+            const confirmContainer = document.getElementById("confirmContainer");
+            const confirmInput = document.getElementById("confirmInput");
+            confirmInput.value = response;
+            confirmContainer.style.display = "block";
+        }
+        
+        function cancelConfirm() {
+            const confirmContainer = document.getElementById("confirmContainer");
+            confirmContainer.style.display = "none";
+        }
+        
+        function saveToMongoDB() {
+            const confirmInput = document.getElementById("confirmInput").value;
+            const userInput = document.getElementById("userInput").value;
+            
+            const data = {
+                input: userInput,
+                output: JSON.parse(confirmInput)
+            };
+            fetch('http://localhost:8081/save-to-mongodb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('保存成功:', data);
+                alert('数据已成功保存到MongoDB！');
+                cancelConfirm();
+            })
+            .catch((error) => {
+                console.error('保存失败:', error);
+                alert('保存失败，请重试！');
+            });
+        }
+        
+        function sendBatchRequest() {
+            const fileInput = document.getElementById("batchFile");
+            const file = fileInput.files[0];
+            if (!file) {
+                showError("请选择文件！");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                batchFileContents = e.target.result;
+                const lines = batchFileContents.split('\n');
+                totalLines = lines.length;
+                processedLines = 0;
+                batchResults = "";
+                originalBatchResults = "";
+                const batchProgress = document.getElementById("batchProgress");
+                batchProgress.textContent = `正在处理第 1/${totalLines} 条数据...`;
+                batchProgress.style.display = "block";
+                document.getElementById("batchComplete").style.display = "none";
+                processLineByLine(lines, 0, batchProgress);
+            };
+            reader.readAsText(file);
+        }
+        
+        function processLineByLine(lines, index, progressElement) {
+            if (index >= lines.length) {
+                progressElement.style.display = "none";
+                document.getElementById("batchComplete").style.display = "block";
+                showBatchConfirmContainer(batchResults);
+                return;
+            }
+            const line = lines[index].trim();
+            if (line) {
+                const data = {
+                    message: line
+                };
+                clearError();
+                fetch('http://localhost:8081/event-demo2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('后端返回:', data);
+                    batchResults += JSON.stringify(data, null, 2) + "\n\n";
+                    const responseOutput = document.getElementById("responseOutput");
+                    responseOutput.textContent = batchResults;
+                    processedLines++;
+                    progressElement.textContent = `正在处理第 ${processedLines}/${totalLines} 条数据...`;
+                    processLineByLine(lines, index + 1, progressElement);
+                })
+                .catch((error) => {
+                    console.error('请求失败:', error);
+                    showError('请求失败，请重试！');
+                    processedLines++;
+                    progressElement.textContent = `正在处理第 ${processedLines}/${totalLines} 条数据...`;
+                    processLineByLine(lines, index + 1, progressElement);
+                });
+            } else {
+                processLineByLine(lines, index + 1, progressElement);
+            }
+        }
+        
+        function showBatchConfirmContainer(results) {
+            const batchConfirmContainer = document.getElementById("batchConfirmContainer");
+            const batchConfirmInput = document.getElementById("batchConfirmInput");
+            batchConfirmInput.value = results;
+            originalBatchResults = results;
+            batchConfirmContainer.style.display = "block";
+        }
+        
+        function cancelBatchConfirm() {
+            const batchConfirmContainer = document.getElementById("batchConfirmContainer");
+            batchConfirmContainer.style.display = "none";
+        }
+        
+        function saveBatchToMongoDB() {
+            const batchConfirmInput = document.getElementById("batchConfirmInput").value;
+            const fileLines = batchFileContents.split('\n');
+            const resultLines = batchConfirmInput.split('\n\n');
+            const batchData = [];
+            const minLines = Math.min(fileLines.length, resultLines.length);
+            
+            for (let i = 0; i < minLines; i++) {
+                const inputLine = fileLines[i].trim();
+                const outputLine = resultLines[i].trim();
+                
+                if (inputLine && outputLine) {
+                    batchData.push({
+                        input: inputLine,
+                        output: JSON.parse(outputLine)
+                    });
+                }
+            }
+            
+            fetch('http://localhost:8081/save-batch-to-mongodb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(batchData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('批量保存成功:', data);
+                alert('批量数据已成功保存到MongoDB！');
+                cancelBatchConfirm();
+            })
+            .catch((error) => {
+                console.error('批量保存失败:', error);
+                alert('批量保存失败，请重试！');
+            });
+        }
+        
+        function searchInMongoDB() {
+            const labelQuery = document.getElementById("labelQuery").value.trim();
+            const textQuery = document.getElementById("textQuery").value.trim();
+            
+            if (!labelQuery && !textQuery) {
+                showError("请至少输入一个查询条件！");
+                return;
+            }
+            
+            clearError();
+            
+            let queryParams = [];
+            queryParams.push(`label=${encodeURIComponent(labelQuery)}`);
+            queryParams.push(`text=${encodeURIComponent(textQuery)}`);
+            
+            const queryString = queryParams.join('&');
+            
+            fetch(`http://localhost:8081/search-in-mongodb?${queryString}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('查询结果:', data);
+                const queryOutput = document.getElementById("queryOutput");
+                if (data.results && data.results.length > 0) {
+                    queryOutput.textContent = `共${data.total}个\n\n${JSON.stringify(data.results, null, 2)}`;
+                } else {
+                    queryOutput.textContent = "没有找到匹配的记录";
+                }
+            })
+            .catch((error) => {
+                console.error('查询失败:', error);
+                showError('查询失败，请重试！');
+                document.getElementById("queryOutput").textContent = "";
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息抽取 Demo</title>
+    <style>
+        /* 页面基本样式 */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 改为顶部对齐 */
+            min-height: 100vh;       /* 使用 min-height */
+            overflow: auto;          /* 添加滚动条 */
+            text-align: center;
+        }
+        /* 容器样式 */
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: left;
+            max-width: 100%;        /* 添加最大宽度 */
+        }
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 0;
+        }
+        /* textarea 样式 */
+        textarea {
+            width: 100%;
+            height: 120px; /* 高度可以调整 */
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            resize: vertical; /* 允许用户垂直调整大小 */
+        }
+        /* 按钮容器 */
+        .button-container {
+            display: flex;
+            gap: 10px; /* 按钮之间的间距 */
+        }
+        /* 按钮样式 */
+        button {
+            flex: 1; /* 让按钮平分可用宽度 */
+            padding: 12px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* 模型结果显示样式 */
+        h3 {
+            color: #333;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 10px;
+            max-height: 200px; /* 限制最大高度 */
+            overflow-y: auto;  /* 超出部分显示滚动条 */
+        }
+        /* 错误消息样式 */
+        .error-message {
+            color: #ff3333;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        /* 批量输入样式 */
+        .batch-input {
+            margin-top: 20px;
+        }
+        .batch-input label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .batch-input input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        /* 确认和修改样式 */
+        .confirm-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .confirm-container textarea {
+            height: 80px;
+        }
+        /* 批量处理进度样式 */
+        .batch-progress {
+            margin-top: 10px;
+            text-align: left;
+            font-size: 14px;
+            color: #666;
+        }
+        /* 批量处理完成样式 */
+        .batch-complete {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 16px;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        /* 批量确认按钮样式 */
+        .batch-confirm-container {
+            margin-top: 20px;
+            display: none;
+        }
+        /* 查询功能样式 */
+        .query-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        .query-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .query-inputs input {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .query-results {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>请输入要抽取的内容</h2>
+        <!-- 修改为 textarea -->
+        <textarea id="userInput" placeholder="请输入内容"></textarea>
+        <!-- 按钮容器 -->
+        <div class="button-container">
+            <!-- 第一个抽取按钮 -->
+            <button onclick="sendPostRequest()">原始大模型</button>
+            <!-- 第二个抽取按钮 -->
+            <button onclick="sendAnotherPostRequest()">微调后的大模型</button>
+        </div>
+        <h3>模型处理结果:</h3>
+        <pre id="responseOutput"></pre>
+        <!-- 错误提示 -->
+        <div class="error-message" id="errorMessage"></div>
+        <!-- 批量输入 -->
+        <div class="batch-input">
+            <h3>批量输入</h3>
+            <label for="batchFile">选择文件:</label>
+            <input type="file" id="batchFile" accept=".txt">
+            <button onclick="sendBatchRequest()">批量处理</button>
+            <div class="batch-progress" id="batchProgress"></div>
+            <div class="batch-complete" id="batchComplete" style="display: none;">处理完毕</div>
+        </div>
+        <!-- 确认和修改 -->
+        <div class="confirm-container" id="confirmContainer">
+            <h3>确认和修改结果</h3>
+            <textarea id="confirmInput" placeholder="请确认或修改结果"></textarea>
+            <div class="button-container">
+                <button onclick="saveToMongoDB()">确认并保存</button>
+                <button onclick="cancelConfirm()">取消</button>
+            </div>
+        </div>
+        <!-- 批量确认和修改 -->
+        <div class="batch-confirm-container" id="batchConfirmContainer">
+            <h3>批量确认和修改结果</h3>
+            <textarea id="batchConfirmInput" placeholder="请确认或修改批量结果"></textarea>
+            <div class="button-container">
+                <button onclick="saveBatchToMongoDB()">确认并保存</button>
+                <button onclick="cancelBatchConfirm()">取消</button>
+            </div>
+        </div>
+        
+        <!-- 查询功能 -->
+        <div class="query-section">
+            <h3>查询功能</h3>
+            <div class="query-inputs">
+                <input type="text" id="labelQuery" placeholder="输入label查询">
+                <input type="text" id="textQuery" placeholder="输入text查询">
+                <button onclick="searchInMongoDB()">查询</button>
+            </div>
+            <div class="query-results">
+                <h4>查询结果:</h4>
+                <pre id="queryOutput"></pre>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 全局变量，用于存储批量处理的结果
+        let batchResults = "";
+        let totalLines = 0;
+        let processedLines = 0;
+        let originalBatchResults = ""; // 存储原始批量结果
+        let batchFileContents = ""; // 存储批量文件内容
+        
+        function sendPostRequest() {
+            // 获取输入框的值
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput) {
+                showError("请输入内容！");
+                return;
+            }
+            const data = {
+                message: userInput
+            };
+            // 清除先前的错误消息
+            clearError();
+            // 发送POST请求
+            fetch('http://localhost:8081/event-demo1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('后端返回:', data);
+                // 显示后端返回的结果
+                const responseOutput = document.getElementById("responseOutput");
+                responseOutput.textContent = JSON.stringify(data, null, 2); // 格式化输出
+                // 显示确认和修改界面
+                showConfirmContainer(JSON.stringify(data, null, 2));
+            })
+            .catch((error) => {
+                console.error('请求失败:', error);
+                showError('请求失败，请重试！');
+            });
+        }
+        
+        function sendAnotherPostRequest() {
+            // 获取输入框的值
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput) {
+                showError("请输入内容！");
+                return;
+            }
+            const data = {
+                message: userInput
+            };
+            // 清除先前的错误消息
+            clearError();
+            // 发送另一个POST请求
+            fetch('http://localhost:8081/event-demo2', { // 假设新的 API URL 为另一个路径
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('另一个后端返回:', data);
+                // 显示另一个后端返回的结果
+                const responseOutput = document.getElementById("responseOutput");
+                responseOutput.textContent = JSON.stringify(data, null, 2); // 格式化输出
+                // 显示确认和修改界面
+                showConfirmContainer(JSON.stringify(data, null, 2));
+            })
+            .catch((error) => {
+                console.error('请求失败:', error);
+                showError('请求失败，请重试！');
+            });
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById("errorMessage");
+            errorMessage.textContent = message;
+        }
+        
+        function clearError() {
+            const errorMessage = document.getElementById("errorMessage");
+            errorMessage.textContent = '';
+        }
+        
+        function showConfirmContainer(response) {
+            const confirmContainer = document.getElementById("confirmContainer");
+            const confirmInput = document.getElementById("confirmInput");
+            confirmInput.value = response;
+            confirmContainer.style.display = "block";
+        }
+        
+        function cancelConfirm() {
+            const confirmContainer = document.getElementById("confirmContainer");
+            confirmContainer.style.display = "none";
+        }
+        
+        function saveToMongoDB() {
+            const confirmInput = document.getElementById("confirmInput").value;
+            const userInput = document.getElementById("userInput").value;
+            
+            // 创建包含输入和输出的JSON对象
+            const data = {
+                input: userInput,
+                output: JSON.parse(confirmInput)
+            };
+            // 发送POST请求
+            fetch('http://localhost:8081/save-to-mongodb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('保存成功:', data);
+                alert('数据已成功保存到MongoDB！');
+                cancelConfirm();
+            })
+            .catch((error) => {
+                console.error('保存失败:', error);
+                alert('保存失败，请重试！');
+            });
+        }
+        
+        function sendBatchRequest() {
+            const fileInput = document.getElementById("batchFile");
+            const file = fileInput.files[0];
+            if (!file) {
+                showError("请选择文件！");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                batchFileContents = e.target.result;
+                const lines = batchFileContents.split('\n');
+                totalLines = lines.length-1;
+                processedLines = 0;
+                batchResults = "";
+                originalBatchResults = ""; // 重置原始批量结果
+                // 显示处理进度
+                const batchProgress = document.getElementById("batchProgress");
+                batchProgress.textContent = `正在处理第 1/${totalLines} 条数据...`;
+                batchProgress.style.display = "block";
+                document.getElementById("batchComplete").style.display = "none";
+                // 依次发送每条数据到后端
+                processLineByLine(lines, 0, batchProgress);
+            };
+            reader.readAsText(file);
+        }
+        
+        function processLineByLine(lines, index, progressElement) {
+            if (index >= lines.length) {
+                // 所有数据处理完毕，显示处理完成
+                progressElement.style.display = "none";
+                document.getElementById("batchComplete").style.display = "block";
+                // 显示批量确认和修改界面
+                showBatchConfirmContainer(batchResults);
+                return;
+            }
+            const line = lines[index].trim();
+            if (line) {
+                const data = {
+                    message: line
+                };
+                // 清除先前的错误消息
+                clearError();
+                // 发送POST请求
+                fetch('http://localhost:8081/event-demo2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('后端返回:', data);
+                    // 将结果追加到批量结果中
+                    batchResults += JSON.stringify(data, null, 2) + "\n\n";
+                    // 更新批量结果显示
+                    const responseOutput = document.getElementById("responseOutput");
+                    responseOutput.textContent = batchResults;
+                    // 更新处理进度
+                    processedLines++;
+                    progressElement.textContent = `正在处理第 ${processedLines}/${totalLines} 条数据...`;
+                    // 处理下一条数据
+                    processLineByLine(lines, index + 1, progressElement);
+                })
+                .catch((error) => {
+                    console.error('请求失败:', error);
+                    showError('请求失败，请重试！');
+                    // 即使失败也继续处理下一条数据
+                    processedLines++;
+                    progressElement.textContent = `正在处理第 ${processedLines}/${totalLines} 条数据...`;
+                    processLineByLine(lines, index + 1, progressElement);
+                });
+            } else {
+                // 空行，直接处理下一条
+                processLineByLine(lines, index + 1, progressElement);
+            }
+        }
+        
+        function showBatchConfirmContainer(results) {
+            const batchConfirmContainer = document.getElementById("batchConfirmContainer");
+            const batchConfirmInput = document.getElementById("batchConfirmInput");
+            batchConfirmInput.value = results;
+            originalBatchResults = results; // 保存原始结果
+            batchConfirmContainer.style.display = "block";
+        }
+        
+        function cancelBatchConfirm() {
+            const batchConfirmContainer = document.getElementById("batchConfirmContainer");
+            batchConfirmContainer.style.display = "none";
+        }
+        
+        function saveBatchToMongoDB() {
+            const batchConfirmInput = document.getElementById("batchConfirmInput").value;
+            
+            // 将批量文件内容和批量结果按行对应起来
+            const fileLines = batchFileContents.split('\n');
+            const resultLines = batchConfirmInput.split('\n\n');
+            
+            // 创建包含所有输入输出对的数组
+            const batchData = [];
+            
+            // 确保我们只处理实际存在的行
+            const minLines = Math.min(fileLines.length, resultLines.length);
+            
+            for (let i = 0; i < minLines; i++) {
+                const inputLine = fileLines[i].trim();
+                const outputLine = resultLines[i].trim();
+                
+                if (inputLine && outputLine) {
+                    batchData.push({
+                        input: inputLine,
+                        output: JSON.parse(outputLine)
+                    });
+                }
+            }
+            
+            // 发送POST请求
+            fetch('http://localhost:8081/save-batch-to-mongodb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(batchData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('批量保存成功:', data);
+                alert('批量数据已成功保存到MongoDB！');
+                cancelBatchConfirm();
+            })
+            .catch((error) => {
+                console.error('批量保存失败:', error);
+                alert('批量保存失败，请重试！');
+            });
+        }
+        
+        // 查询功能
+        function searchInMongoDB() {
+            const labelQuery = document.getElementById("labelQuery").value.trim();
+            const textQuery = document.getElementById("textQuery").value.trim();
+            
+            if (!labelQuery && !textQuery) {
+                showError("请至少输入一个查询条件！");
+                return;
+            }
+            
+            clearError();
+            
+            // 构建查询参数
+            let queryParams = [];
+            if (labelQuery) {
+                queryParams.push(`label=${encodeURIComponent(labelQuery)}`);
+            }
+            if (textQuery) {
+                queryParams.push(`text=${encodeURIComponent(textQuery)}`);
+            }
+            
+            const queryString = queryParams.join('&');
+            
+            // 发送GET请求
+            fetch(`http://localhost:8081/search-in-mongodb?${queryString}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('查询结果:', data);
+                const queryOutput = document.getElementById("queryOutput");
+                // 检查是否存在 results 数组
+                if (data.results && data.results.length > 0) {
+                    // 显示查询结果和总数
+                    queryOutput.textContent = `共${data.total}个\n\n${JSON.stringify(data.results, null, 2)}`;
+                } else {
+                    queryOutput.textContent = "没有找到匹配的记录";
+                }
+            })
+            .catch((error) => {
+                console.error('查询失败:', error);
+                showError('查询失败，请重试！');
+                document.getElementById("queryOutput").textContent = "";
+            });
+        }
+    </script>
+</body>
+</html>
